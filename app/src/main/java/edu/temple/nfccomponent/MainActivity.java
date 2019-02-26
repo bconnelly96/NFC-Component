@@ -20,7 +20,7 @@ public class MainActivity extends AppCompatActivity {
             connected = true;
 
             keyService.getMyKeyPair();
-            keyService.generatePEM();
+            keyService.getUserPublicForExchange("brendan");
         }
 
         @Override
@@ -33,9 +33,6 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        if (connected) {
-            keyService.generatePEM();
-        }
     }
 
     @Override

@@ -5,6 +5,9 @@ import android.content.Intent;
 import android.os.Binder;
 import android.os.IBinder;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -24,8 +27,8 @@ import java.security.spec.X509EncodedKeySpec;
 public class KeyService extends Service {
     final String ALGORITHM = "RSA";
     final String USER_KEYPAIR_DIR = "USER_KEYPAIR_DIR";
-    final String header = "-----BEGIN PUBLIC KEY-----";
-    final String footer = "-----END PUBLIC KEY-----";
+    final String HEADER = "-----BEGIN PUBLIC KEY-----";
+    final String FOOTER = "-----END PUBLIC KEY-----";
 
     IBinder iBinder = new TestBinder();
     FileInputStream inputStream = null;
@@ -63,7 +66,6 @@ public class KeyService extends Service {
             }
             //generate keypair and store it in file
         } else {
-            System.out.println("***********PAIR NOT GENERATED******");
             try {
                 userStoreDir.mkdir();
 
@@ -135,25 +137,27 @@ public class KeyService extends Service {
         }
     }
 
-    //get user's public key and generate a String representing it in PEM format
-    public String generatePEM() {
-        KeyPair userKeyPair = fetchExistingKeyPair();
-        String PEMString = null;
+    /*Prepares and returns a String for public key exchange with format:
+    *{"user":"username","key":"PEM data"}*/
+    public String getUserPublicForExchange(String userName) {
+        JSONObject jsonObject = new JSONObject();
+        String exchangeString = null;
+        String PEMString = generatePEM();
 
-        if (userKeyPair != null) {
-            PublicKey userPublic = userKeyPair.getPublic();
-
-            String mod = userPublic.toString().substring(28, 540);
-            StringBuilder sb = new StringBuilder();
-            sb.append(header);
-            sb.append(mod);
-            sb.append(footer);
-            PEMString = sb.toString();
+        if (PEMString != null) {
+            try {
+                jsonObject.put("user", userName);
+                jsonObject.put("key", PEMString);
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+            exchangeString = jsonObject.toString();
         }
-        System.out.println(PEMString);
-        return PEMString;
+        System.out.println(exchangeString);
+        return exchangeString;
     }
 
+    //Read user's keypair from storage and return it
     private KeyPair fetchExistingKeyPair() {
         KeyPair myKeyPair = null;
         File userStoreDir = new File(getFilesDir(), USER_KEYPAIR_DIR);
@@ -187,5 +191,23 @@ public class KeyService extends Service {
             e.printStackTrace();
         }
         return myKeyPair;
+    }
+
+    //get user's public key and generate a String representing it in PEM format
+    private String generatePEM() {
+        KeyPair userKeyPair = fetchExistingKeyPair();
+        String PEMString = null;
+
+        if (userKeyPair != null) {
+            PublicKey userPublic = userKeyPair.getPublic();
+            String mod = userPublic.toString().substring(28, 540);
+            StringBuilder sb = new StringBuilder();
+            sb.append(HEADER);
+            sb.append(mod);
+            sb.append(FOOTER);
+            PEMString = sb.toString();
+        }
+        System.out.println(PEMString);
+        return PEMString;
     }
 }
