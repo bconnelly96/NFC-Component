@@ -12,6 +12,7 @@ import android.nfc.NfcAdapter;
 import android.nfc.NfcEvent;
 import android.nfc.tech.NfcA;
 import android.os.IBinder;
+import android.os.Parcelable;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.widget.Button;
@@ -22,6 +23,9 @@ public class MainActivity extends AppCompatActivity implements NfcAdapter.Create
     KeyService keyService;
     boolean connected;
     String userKeyForExchange = null;
+    //TODO: in final lab implement MapFragment interface to receive selected partner's userName
+    String partnerPublicKeyString = null;
+    String userPublicKey = null;
 
     NfcAdapter nfcAdapter;
 
@@ -58,6 +62,14 @@ public class MainActivity extends AppCompatActivity implements NfcAdapter.Create
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        if (NfcAdapter.ACTION_NDEF_DISCOVERED.equals(getIntent().getAction())) {
+            processIntent(getIntent(), partnerPublicKeyString);
+        }
+    }
+
+    @Override
     protected void onStart() {
         super.onStart();
         Intent serviceIntent= new Intent(this, KeyService.class);
@@ -75,6 +87,14 @@ public class MainActivity extends AppCompatActivity implements NfcAdapter.Create
         String messageString = userKeyForExchange;
         NdefRecord ndefRecord = NdefRecord.createMime("text/plain", messageString.getBytes());
         return new NdefMessage(ndefRecord);
+    }
+
+    private void processIntent(Intent intent, String partnerName) {
+        Parcelable[] rawMessages = intent
+                .getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES);
+        NdefMessage msg = (NdefMessage) rawMessages[0];
+        partnerPublicKeyString = new String(msg.getRecords()[0].getPayload());
+        keyService.storePublicKey(partnerName, partnerPublicKeyString);
     }
 
 }
