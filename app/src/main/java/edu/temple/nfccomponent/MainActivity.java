@@ -25,9 +25,10 @@ public class MainActivity extends AppCompatActivity implements NfcAdapter.Create
     String userKeyForExchange = null;
     //TODO: in final lab implement MapFragment interface to receive selected partner's userName
     String partnerPublicKeyString = null;
-    String userPublicKey = null;
 
     NfcAdapter nfcAdapter;
+
+    TextView textView;
 
     ServiceConnection serviceConnection = new ServiceConnection() {
         @Override
@@ -38,6 +39,12 @@ public class MainActivity extends AppCompatActivity implements NfcAdapter.Create
 
             keyService.getMyKeyPair();
             userKeyForExchange = keyService.getUserPublicForExchange("brendan");
+
+
+            System.out.println("**************");
+            System.out.println("User's Retrieved Key for Exhange:");
+            System.out.println(userKeyForExchange);
+            System.out.println("**************");
         }
 
         @Override
@@ -56,9 +63,15 @@ public class MainActivity extends AppCompatActivity implements NfcAdapter.Create
             Toast.makeText(this, "NFC is not available on this device.", Toast.LENGTH_LONG).show();
             finish();
             return;
+        } else {
+            System.out.println("**************");
+            System.out.println("NFC ADAPTER NOT NULL");
+            System.out.println("**************");
         }
 
         nfcAdapter.setNdefPushMessageCallback(this, this );
+
+        textView = findViewById(R.id.textView);
     }
 
     @Override
@@ -66,6 +79,10 @@ public class MainActivity extends AppCompatActivity implements NfcAdapter.Create
         super.onResume();
         if (NfcAdapter.ACTION_NDEF_DISCOVERED.equals(getIntent().getAction())) {
             processIntent(getIntent(), partnerPublicKeyString);
+
+            System.out.println("**************");
+            System.out.println("NDEF ACTION DISCOVERED");
+            System.out.println("**************");
         }
     }
 
@@ -73,7 +90,12 @@ public class MainActivity extends AppCompatActivity implements NfcAdapter.Create
     protected void onStart() {
         super.onStart();
         Intent serviceIntent= new Intent(this, KeyService.class);
-        bindService(serviceIntent, serviceConnection, Context.BIND_AUTO_CREATE);
+        if (bindService(serviceIntent, serviceConnection, Context.BIND_AUTO_CREATE)) {
+            System.out.println("**************");
+            System.out.println("SERVICE BOUND");
+            System.out.println("**************");
+        }
+
     }
 
     @Override
@@ -86,6 +108,11 @@ public class MainActivity extends AppCompatActivity implements NfcAdapter.Create
     public NdefMessage createNdefMessage(NfcEvent nfcEvent) {
         String messageString = userKeyForExchange;
         NdefRecord ndefRecord = NdefRecord.createMime("text/plain", messageString.getBytes());
+
+        System.out.println("**************");
+        System.out.println(ndefRecord.getPayload().toString());
+        System.out.println("**************");
+
         return new NdefMessage(ndefRecord);
     }
 
@@ -94,7 +121,9 @@ public class MainActivity extends AppCompatActivity implements NfcAdapter.Create
                 .getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES);
         NdefMessage msg = (NdefMessage) rawMessages[0];
         partnerPublicKeyString = new String(msg.getRecords()[0].getPayload());
-        keyService.storePublicKey(partnerName, partnerPublicKeyString);
+        if (keyService.storePublicKey(partnerName, partnerPublicKeyString)) {
+            Toast.makeText(this, "Key Successfully stored", Toast.LENGTH_SHORT).show();
+            textView.setText(partnerPublicKeyString);
+        }
     }
-
 }

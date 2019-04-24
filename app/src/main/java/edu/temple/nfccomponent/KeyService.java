@@ -94,7 +94,8 @@ public class KeyService extends Service {
 
     /*stores publicKey with partnerName as filename in internal storage
     *NOTE: publicKey is in PEM format*/
-    public void storePublicKey(String partnerName, String publicKey) {
+    public boolean storePublicKey(String partnerName, String publicKey) {
+        boolean returnVal = false;
         byte [] publicKeyBytes = publicKey.getBytes();
 
         File keyFile = new File(getFilesDir(), partnerName);
@@ -102,11 +103,13 @@ public class KeyService extends Service {
             outputStream = new FileOutputStream(keyFile);
             outputStream.write(publicKeyBytes);
             outputStream.close();
+            returnVal = true;
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
         }
+        return returnVal;
     }
 
     //retrieves public key saved with partnerName as filename from internal storage
